@@ -1,0 +1,223 @@
+{
+ "Promoción cooperativa": [
+  "04-01"
+ ],
+ "Diagnóstico educativo": [
+  "04-02"
+ ],
+ "Evaluación educativa": [
+  "04-03"
+ ],
+ "Asesoría educativa": [
+  "04-04"
+ ],
+ "Elaboración de material didáctico": [
+  "04-05"
+ ],
+ "Charla educativa": [
+  "04-06"
+ ],
+ "Conferencia": [
+  "04-07"
+ ],
+ "Seminario": [
+  "04-08"
+ ],
+ "Taller": [
+  "04-09"
+ ],
+ "Encuentro educativo": [
+  "04-10"
+ ],
+ "Circulo de estudios": [
+  "04-11"
+ ],
+ "Círculo de calidad": [
+  "04-12"
+ ],
+ "Curso": [
+  "04-13"
+ ],
+ "Pasantía": [
+  "04-14"
+ ],
+ "Información cooperativa": [
+  "04-15"
+ ],
+ "Seguimiento": [
+  "04-16",
+  "0605"
+ ],
+ "Actividades educativas especiales": [
+  "04-17"
+ ],
+ "Planificación y coordinación de actividades": [
+  "04-18"
+ ],
+ "Elaboración de informes": [
+  "04-19"
+ ],
+ "Presentación y sustentación de informes": [
+  "04-20"
+ ],
+ "Administración del programa": [
+  "04-21"
+ ],
+ "Asesoría Técnica": [
+  "0201"
+ ],
+ "Instructor": [
+  "0202",
+  "0502",
+  "0602"
+ ],
+ "Evaluación Empresarial": [
+  "0203"
+ ],
+ "Realización de Asambleas": [
+  "0204"
+ ],
+ "Seguimiento Técnico": [
+  "0205",
+  "0509"
+ ],
+ "Organización de Cooperativas": [
+  "0206"
+ ],
+ "Supervisión Empresarial": [
+  "0207"
+ ],
+ "Diagnostico General": [
+  "0208"
+ ],
+ "Investigación Específica": [
+  "0209"
+ ],
+ "Asesoría Agropecuaria": [
+  "0301"
+ ],
+ "Asesoría en Producción Orgánica": [
+  "0302"
+ ],
+ "Asesoría al Crédito de Producción y/o Comercialización": [
+  "0303"
+ ],
+ "Asesoría en Comercialización": [
+  "0304"
+ ],
+ "Asesoría en Manejo de Huertos": [
+  "0305"
+ ],
+ "Instructor / Recurso Técnico Extensionista": [
+  "0306"
+ ],
+ "Recurso Técnico Extensionista": [
+  "0306"
+ ],
+ "Caracterización de Actividades de Producción": [
+  "0307"
+ ],
+ "Diagnóstico de la Producción": [
+  "0308"
+ ],
+ "Elaboración de Planes de Producción": [
+  "0309"
+ ],
+ "Seguimiento a la Asesoría Agropecuaria": [
+  "0310"
+ ],
+ "Seguimiento al Uso del Crédito": [
+  "0311"
+ ],
+ "Seguimiento en Comercialización": [
+  "0312"
+ ],
+ "Seguimiento en Manejo de Huertos": [
+  "0313"
+ ],
+ "Coordinación Técnica": [
+  "0314",
+  "0606"
+ ],
+ "Evaluación de registros contables oficiales y auxiliares": [
+  "0401"
+ ],
+ "Fiscalización de libros contables": [
+  "0402"
+ ],
+ "Cumplimiento de preparación de estados financieros según normativa": [
+  "0403"
+ ],
+ "Análisis y evaluación de estados financieros": [
+  "0404"
+ ],
+ "Supervisión en contabilidad y finanzas": [
+  "0405"
+ ],
+ "Asesoría en contabilidad y finanzas": [
+  "0407"
+ ],
+ "Instructor en contabilidad y finanzas": [
+  "0408"
+ ],
+ "Trabajos especiales en contabilidad": [
+  "0409"
+ ],
+ "Análisis de reportes de liquidez": [
+  "0410"
+ ],
+ "Sistema de contabilidad": [
+  "0411"
+ ],
+ "Asesoría Elaboración de Perfiles de Proyectos": [
+  "0501"
+ ],
+ "Inventario de Proyectos": [
+  "0503"
+ ],
+ "Asistencia en la Identificación de Proyectos": [
+  "0504"
+ ],
+ "Asistencia Técnica Específica": [
+  "0505"
+ ],
+ "Asistencia en Proyecciones Económicas": [
+  "0506"
+ ],
+ "Evaluación Económica de Programa de Crédito": [
+  "0507"
+ ],
+ "Análisis de Tendencia Económica": [
+  "0508"
+ ],
+ "Asesoría en Mercadeo": [
+  "0601"
+ ],
+ "Diagnóstico de Mercadeo": [
+  "0603"
+ ],
+ "Investigación Específica en Mercadeo": [
+  "0604"
+ ],
+ "Otras actividades técnicas": [
+  "Técnicas-01"
+ ],
+ "Otras actividades administrativas": [
+  "Admva-02"
+ ],
+ "Planeación": [
+  "Admva-03"
+ ],
+ "Evaluación": [
+  "Admva-04"
+ ],
+ "Fortalecimiento Institucional": [
+  "Admva-05"
+ ],
+ "Apoyo Institucional": [
+  "Admva-06"
+ ],
+ "Seguimiento a debilidades detectadas y recomendaciones": [
+  "0406"
+ ]
+}
