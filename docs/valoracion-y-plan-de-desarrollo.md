@@ -1,203 +1,216 @@
-# Sistema de Captura de Informes IPACOOP — Valoración, stack y plan de desarrollo
+# Sistema de Captura de Informes IPACOOP — Valoración, stack y plan de desarrollo (v2)
 
-Oficina de Planificación · documento de trabajo · elaborado el 9 de noviembre de 2026
-Base del análisis: `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` (8.117 líneas, ~233 funciones, 9 vistas, 59 iteraciones de requisitos visibles en los comentarios «Task N»).
+Oficina de Planificación · documento de trabajo · v2 del 9 de noviembre de 2026
+Base del análisis: `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` (8.117 líneas, ~233 funciones, 9 vistas, ~59 iteraciones de requisitos visibles en los comentarios «Task N»).
+
+**Cambios respecto a la v1** (según las respuestas de la Oficina):
+- No existe aplicación previa: se construye desde cero (web + web service + base de datos).
+- Presupuesto bajo → solo software libre, sin licencias; desarrollo con Claude Code.
+- Hospedaje **interno**: dos servidores virtuales (aplicación y base de datos). Se elimina todo lo que dependa de nube o servicios externos.
+- **Las fórmulas de la maqueta son definitivas**: se implementan tal cual; ya no hay sesión de reconciliación.
+- **Sin IA externa:** el módulo de «hallazgos con Gemini» queda fuera del alcance.
+- **Sin migración de datos:** el sistema arranca vacío; se elimina el importador de respaldos.
+- Fechas duras: **Plan Anual disponible el martes 1 de diciembre de 2026**; resto del sistema **al cierre de diciembre (jueves 31)**.
 
 ---
 
 ## 1. Resumen ejecutivo
 
-- **La maqueta es una excelente especificación funcional, pero no es una base de código reutilizable.** Es un único HTML con estado global, datos en `localStorage` del navegador, sin usuarios ni servidor. Se reutilizan **las reglas, los catálogos, las plantillas de datos y los formatos de impresión**; el código se reescribe.
-- **El valor real está en las fórmulas y reglas de negocio**, ya validadas durante ~59 rondas con los usuarios. El riesgo principal no es técnico: es que **hoy conviven tres definiciones distintas de «cumplimiento»** (ver §3.2) y hay que unificarlas antes de fijarlas en código.
-- **Recomendación de stack:** TypeScript de extremo a extremo — Next.js + PostgreSQL, con un paquete `domain` de funciones puras donde viven las fórmulas, validado contra la propia maqueta como «oráculo» (pruebas de paridad).
-- **Calendario:** el cuello de botella es estacional. El **Plan Anual 2027 debe poder capturarse en diciembre** y los primeros mensuales llegan en **febrero de 2027**. Por eso el plan entrega primero **Plan Anual (11-dic)**, luego **Informe Mensual + avance (22-ene)**, y el resto hasta el cierre del T1 (**20-mar-2027**).
-- Esfuerzo orientativo: **~14 persona-mes** (equipo de ~3,5 FTE × 19 semanas). Estimación gruesa; se afina tras la semana 0.
+- La maqueta es una **especificación funcional muy completa** (reglas, fórmulas, catálogos, formatos de impresión), pero no es una base de código reutilizable: un solo HTML, datos en el navegador, sin usuarios ni servidor. Se reconstruye siguiendo la maqueta como especificación y como **oráculo de pruebas**.
+- **Arquitectura propuesta:** aplicación de una página (React) + **web service REST** (Node.js/Fastify) + **PostgreSQL**, en dos máquinas virtuales Linux. Todo software libre; costo de licencias = 0.
+- **Seguridad:** cuentas propias con contraseñas protegidas (argon2id), sesiones seguras, **perfiles (roles) con alcance por provincia / departamento / programa aplicado en el servidor**, bitácora de auditoría que no se puede alterar desde la aplicación, TLS interno.
+- **Calendario en 4 entregas:** R1 Plan Anual (1-dic) → R2 Informe Mensual y avance (11-dic) → R3 Informe Técnico y consolidados (22-dic) → R4 Indicadores, Fomento y cierre (30-dic, con 31-dic de colchón).
+- **El calendario es posible pero exigente.** Claude Code acelera la programación, no el aprovisionamiento de servidores, la revisión humana ni las pruebas de aceptación. El mayor riesgo para el 1-dic es que las máquinas virtuales y accesos no estén listos a tiempo (ver §6).
 
 ---
 
-## 2. Qué contiene la maqueta (inventario funcional)
+## 2. Qué contiene la maqueta
 
-| # | Módulo | Qué hace | Complejidad |
+| # | Módulo | Qué hace | Estado en el alcance |
 |---|---|---|---|
-| 1 | **Plan Anual** | Matriz por actividad: necesidad/objetivo/meta, cantidades ENE–DIC, costos (viáticos, alquiler/alimentación, transporte), subformulario de datos específicos **por mes** según el tipo de actividad. Un plan por *dirección provincial + departamento + año*; cada programa se integra como «sección». | Alta |
-| 2 | **Informe Mensual** | Filas actividad + cooperativa (catálogo de 1.381), detección automática *Programada Sí/No*, modal de impacto (mujeres/hombres/edades/capacitaciones/presupuesto ejecutado). **Un solo informe por provincia + mes + año**, con aportes de varios técnicos. | Alta |
-| 3 | **Informe Técnico** | Informe de visita a cooperativa; número de control homologado `DAT-BDT-CYF-001-2026`; pendientes con estatus; **respuesta del coordinador** con su propio control `DAT-COOR-CYF-001-2026` y certificación de recomendaciones. | Media-alta |
-| 4 | **Consolidado Mensual / Trimestral** | Por departamento + programa + mes: programadas / realizadas / no programadas, técnicas vs administrativas, % de cumplimiento; versión imprimible y versión de captura manual. | Media |
-| 5 | **Repositorio** (5 pestañas) | Planes, mensuales, consolidados, trimestral, seguimiento técnico, con filtros y avance plan-vs-ejecutado por mes y trimestre. | Media-alta |
-| 6 | **Dirección de Fomento** | Monitoreo de solo lectura acotado por departamento. | Baja |
-| 7 | **Indicadores** | KPIs con semáforo, matriz programa×mes, alertas de atraso, gráficos, bitácora, respaldo JSON/CSV, hallazgos con IA (Gemini). | Media-alta |
-| 8 | **Exportaciones** | Excel de 2 hojas (Planificado / Ejecutado) con ZIP escrito a mano; 6 documentos imprimibles con `window.open` + CSS. | Media |
+| 1 | **Plan Anual** | Matriz por actividad: necesidad/objetivo/meta, cantidades ENE–DIC, costos (viáticos, alquiler/alimentación, transporte), subformulario de datos específicos **por mes** según el tipo de actividad. Un plan por *dirección provincial + departamento + año*; cada programa se integra como «sección». | **R1** |
+| 2 | **Informe Mensual** | Filas actividad + cooperativa (catálogo de 1.381), detección automática *Programada Sí/No*, modal de impacto (mujeres, hombres, edades, capacitaciones, presupuesto ejecutado). **Un solo informe por provincia + mes + año**, con aportes de varios técnicos. | **R2** |
+| 3 | **Repositorio** | Planes, mensuales y seguimiento técnico con filtros; avance plan-vs-ejecutado por mes y trimestre. | R1 (planes) · R2 (mensuales/avance) |
+| 4 | **Informe Técnico** | Visita a cooperativa; control homologado `DAT-BDT-CYF-001-2026`; pendientes con estatus; **respuesta del coordinador** con su control `DAT-COOR-CYF-001-2026`. | **R3** |
+| 5 | **Consolidado Mensual / Trimestral** | Por departamento + programa + mes: programadas / realizadas / no programadas (técnicas y administrativas) y % de cumplimiento. | **R3** (calculados por el sistema) |
+| 6 | **Dirección de Fomento** | Monitoreo de solo lectura por departamento. | R4 |
+| 7 | **Indicadores** | KPIs con semáforo, matriz programa×mes, alertas de atraso, gráficos, bitácora, exportación CSV. | R4 |
+| 8 | **Exportaciones** | Excel de 2 hojas (Planificado / Ejecutado) y documentos imprimibles. | R3–R4 |
 
-Datos de referencia embebidos: 12 direcciones, 8 departamentos, 13 programas, 72 actividades con códigos (`04-xx` Promoción, `2xx–6xx` Asistencia Técnica, `Técnicas-01`, `Admva-02..06`), 1.381 cooperativas, 25 tipos, 41 cargos. Extraídos a `referencia/seeds/`.
+**Fuera del alcance (decidido por la Oficina):** análisis con IA externa (Gemini), importación/restauración de respaldos JSON, migración de datos.
+**Supuesto a confirmar:** los formularios de *captura manual* de consolidados (mensual/trimestral) **no se construyen**; el propósito es que cada dirección provincial capture su plan de forma autónoma y la ejecución se centralice en el sistema, de donde se calculan los consolidados e indicadores.
+
+Datos de referencia (extraídos a `referencia/seeds/`): 12 direcciones, 8 departamentos, 13 programas, 72 actividades con códigos (`04-xx` Promoción, `2xx–6xx` Asistencia Técnica, `Técnicas-01`, `Admva-02..06`), 1.381 cooperativas, 25 tipos, 41 cargos.
 
 ---
 
 ## 3. Valoración
 
 ### 3.1 Fortalezas
+1. Reglas de negocio maduras y documentadas en los comentarios (clasificación por departamento/programa/serie de código, técnica vs administrativa, tope del 100 %, separación de actividades no programadas).
+2. UX validada con los usuarios en ~59 iteraciones; flujos de captura por secciones; números de control autogenerados; impresión fiel a los modelos oficiales.
+3. Modelo de aporte multi-técnico claro: cada mención de una actividad programada = 1 acción; los aportes de todos los técnicos se suman.
 
-1. **Reglas de negocio maduras y explícitas** (comentadas con su origen): clasificación de actividades por departamento/programa/serie de código, técnica vs administrativa, familias de plantilla de datos, tope del 100 %, separación de actividades no programadas.
-2. **UX validada:** flujos de captura por secciones, auto-detección de «programada», números de control autogenerados, impresión fiel a los modelos oficiales.
-3. **Modelo de aporte multi-técnico bien pensado:** cada mención de una actividad programada = 1 acción; los aportes de todos los técnicos se suman.
-4. **Ya existe la vía de migración de datos:** el «Exportar respaldo» JSON puede ser el formato de importación al sistema real.
+### 3.2 Fórmulas vigentes (se implementan tal cual)
 
-### 3.2 Hallazgos sobre las fórmulas (decisiones de negocio pendientes)
+Origen: `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular`.
 
-> Las fórmulas están en `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular`. Se listan tal como están implementadas.
-
-| Fórmula | Implementación actual |
+| Fórmula | Implementación |
 |---|---|
 | Total de fila del plan | `Σ m1..m12` |
 | Costo total de fila | `viáticos + alquiler/alimentación + transporte` |
-| Acciones planificadas (ACC plan) | `total` de la fila, o `datosExtra.cantidad` si el total es 0 (salvo familia *organización*) |
-| Acciones ejecutadas (ACC) | **1 por cada fila de mensual** que menciona una actividad programada (no usa el campo «cantidad») |
-| **Avance / cumplimiento del plan** | `min(100, round(ACC_ejecutadas × 100 / ACC_planificadas))`; `null` si el plan no promete acciones; 0 % si no hay mensuales |
-| % presupuesto | `min(100, round(Σ presupuestoEjec × 100 / Σ costoTotal))` |
-| Total de asociados | `mujeres + hombres` (si no, `asociadosTotal` o `participantes`); alerta si la suma por edades ≠ total |
-| *Programada* | `true` si la actividad está (por nombre sin acentos) en el plan de misma provincia + año + departamento; la bandera guardada prevalece |
-| **Consolidado: cumplimiento por provincia** | `min(100, round(realizadas_técnicas × 100 / programadas_técnicas))`; *programadas* = actividades con cantidad > 0 en la columna del mes; *realizadas* = actividades **distintas** reportadas ese mes |
-| **Consolidado (captura manual)** | `SI(O(B="",D=""),0,(D+E)/(B+C))` → `(realTéc+realAdm)/(progTéc+progAdm)`, y 0 si falta progTéc o realTéc |
+| Acciones planificadas (ACC plan) | `total` de la fila; si es 0, `datosExtra.cantidad` (excepto familia *organización*) |
+| Acciones ejecutadas (ACC) | 1 por cada fila de mensual que menciona una actividad programada |
+| **Avance / cumplimiento del plan** | `min(100, round(ACC_ejecutadas × 100 / ACC_planificadas))`; sin acciones planificadas = «—»; sin mensuales = 0 % |
+| % de presupuesto | `min(100, round(Σ presupuestoEjec × 100 / Σ costoTotal))` |
+| Total de asociados | `mujeres + hombres` (si no, `asociadosTotal` o `participantes`); advertencia si la suma por edades ≠ total |
+| *Programada* | `true` si la actividad está en el plan de la misma provincia + año + departamento (comparación sin acentos); la bandera guardada prevalece |
+| **Cumplimiento del consolidado por provincia** | `min(100, round(realizadas_técnicas × 100 / programadas_técnicas))`; *programadas* = actividades con cantidad > 0 en la columna del mes; *realizadas* = actividades **distintas** reportadas ese mes |
 | Cobertura de mensuales | `programas con ≥1 mensual del mes / programas con actividades planificadas` |
-| Semáforo | `≥75 % verde · ≥40 % ámbar · <40 % rojo` |
-| Alerta técnico sin respuesta | `> 15 días` desde la fecha de la actividad |
+| Semáforo | `≥ 75 % verde · ≥ 40 % ámbar · < 40 % rojo` |
+| Alerta de informe técnico sin respuesta | `> 15 días` desde la fecha de la actividad |
 
-**Puntos que requieren decisión de la Oficina antes de codificar** (cada uno cambia números oficiales):
+**Regla de implementación:** las fórmulas viven en un único paquete (`packages/domain`) y se verifican con **pruebas de paridad contra la maqueta** (§4.2). Como la Oficina las considera definitivas, cualquier diferencia entre el sistema y la maqueta es un defecto, no una decisión.
 
-1. **Tres definiciones de «cumplimiento»:** (a) menciones/ACC planificadas, (b) actividades *distintas* técnicas, (c) fórmula (D+E)/(B+C) del consolidado manual. Un mismo programa-mes puede dar tres porcentajes. Definir **una** métrica canónica y nombrar las demás.
-2. **Tope del 100 % solo en el agregado:** sobre-ejecutar una actividad compensa sub-ejecutar otra dentro del mismo programa. ¿Se desea tope por actividad?
-3. **ACC ejecutada ignora «cantidad»:** un técnico que reporta «3 charlas» en una fila cuenta 1 acción, pero el plan sí promete 3. ¿Es intencional (Task 48)?
-4. **Redondeo/null:** `Math.round` y `null` vs `0`. Fijar redondeo (half-up) y representación de «sin dato» en los reportes.
-5. **Consolidados manuales vs calculados:** los de captura «no alimentan nada». ¿Se mantienen o el sistema genera el consolidado y se permite ajuste con justificación?
-6. **Congelamiento (cierre mensual):** hoy todo se recalcula en vivo; un informe impreso puede cambiar después. Se recomienda **cierre de mes con instantánea** de cifras.
+*Nota informativa (no bloquea):* en la interfaz se rotulará cada porcentaje con su nombre exacto («Avance del plan por acciones», «Cumplimiento técnico del consolidado»), porque son métricas distintas y un mismo programa-mes puede mostrar valores diferentes en cada una.
 
-### 3.3 Debilidades técnicas y de seguridad (no deben trasladarse)
-
-| Tema | Situación en la maqueta | Consecuencia |
+### 3.3 Debilidades de la maqueta que NO se trasladan
+| Tema | En la maqueta | En el sistema real |
 |---|---|---|
-| Almacenamiento | `localStorage` (≈5 MB, por navegador) | Sin repositorio central real; cada PC ve datos distintos; pérdida al limpiar el navegador |
-| Identidad | **No hay autenticación ni roles.** Las vistas «exclusivas» son solo entradas de menú; el «usuario» de la bitácora es texto libre | Cualquiera ve/edita todo; auditoría falsificable |
-| IA | Llave de Gemini **guardada en el navegador** y llamada directa desde el cliente; envía informes técnicos de cooperativas a un tercero | Fuga de llave; datos sensibles fuera de control institucional |
-| Claves de datos | Se relaciona por **nombre sin acentos** (actividad, programa, cooperativa, departamento con 2 convenciones: `Promoción y Educación` / `DEPARTAMENTO_DE_PROMOCIÓN_Y_EDUCACIÓN`) | Un cambio de nombre rompe históricos; hubo que escribir `renProgLegado`, `dividirPlanesLegacy`, `fusionarPlanes`, `fusionarInformes` |
-| Duplicados | Deduplicación por «huella» de texto de la fila | En BD se resuelve con restricciones únicas y filas con autor, no con heurísticas |
-| Plantillas de datos | Se infieren con **regex sobre el nombre** de la actividad (`obtenerPlantilla`) | Frágil; debe ser una relación explícita actividad→plantilla en catálogo |
-| Control de números | Secuencia 001–500 elegida a mano | Colisiones con usuarios concurrentes; tope artificial |
-| Impresión/Excel | `window.open + document.write`; ZIP/XLSX escrito a mano | Salida dependiente del navegador; mantenimiento costoso |
-| Calidad de catálogo | `Panampa Sede Central`, `Dirección de Fomento de Cooperativo`, cooperativas sin identificador (nombre como clave, mayúsculas inconsistentes, 427 «Liquidada» + 276 «Inactiva» de 1.381) | Requiere depuración y un identificador estable (n.º de registro) |
-| Reglas cambiantes | Los programas por departamento cambiaron en Task 54/55/56 | Catálogos deben ser **editables por Planificación y versionados por año**, no constantes en código |
-
-### 3.4 Qué se reutiliza y qué no
-
-- **Reutilizar (portar):** catálogos y códigos (`referencia/seeds/`), plantillas de datos (`PLANTILLAS`), funciones de cálculo (como especificación + oráculo de pruebas), CSS y estructura de los documentos imprimibles.
-- **No reutilizar:** estado global, render por `innerHTML`, almacenamiento, deduplicación heurística, generador XLSX, llamada a IA desde el cliente.
-- **Nota:** los comentarios mencionan `lib/actividad-forms.ts` y `plan-anual.tsx` y se usa `use-toast`/iconos Lucide, lo que sugiere una app React/Next ya existente de la que la maqueta es «espejo». **Confirmar si ese repositorio existe**; si es así, se evalúa reutilizarlo como punto de partida.
+| Almacenamiento | `localStorage` por navegador | PostgreSQL central |
+| Identidad | Sin autenticación; «exclusivo» = solo menú; usuario de bitácora = texto libre | Cuentas, roles y alcance verificados en servidor; bitácora con usuario real |
+| Claves de datos | Se enlaza por **nombre sin acentos** (actividad, programa, departamento con 2 convenciones de nombre) | Identificadores estables (llaves foráneas) |
+| Duplicados | Deduplicación heurística por «huella» de texto (`fusionarInformes`, `fusionarPlanes`) | Restricciones únicas + filas con autor |
+| Plantillas de datos | Inferidas con regex sobre el nombre de la actividad | Relación explícita actividad → plantilla en catálogo |
+| Control de números | Secuencia 001–500 elegida a mano | Secuencia atómica por (departamento, provincia, programa, año) |
+| Impresión/Excel | `window.open` + ZIP escrito a mano | Impresión del navegador con la misma CSS + `exceljs` |
+| Catálogos | Constantes en el código; programas por departamento cambiaron tres veces | Tablas administrables por Planificación, versionadas por año |
+| Calidad de datos | `Panampa Sede Central`, `Dirección de Fomento de Cooperativo`; cooperativas sin identificador (427 liquidadas, 276 inactivas de 1.381) | Depuración antes de cargar las semillas; identificador interno |
 
 ---
 
 ## 4. Stack tecnológico recomendado
 
-Criterios: equipo pequeño, un solo lenguaje, lógica de negocio pesada y compartida entre servidor y pantalla, datos tabulares con agregaciones, documentos oficiales imprimibles, sostenibilidad en una institución pública.
+**Criterios:** costo de licencias cero, dos servidores virtuales, uso interno, un solo lenguaje, lógica de negocio pesada, y desarrollo asistido por Claude Code (que rinde mejor con TypeScript tipado, pruebas automáticas y convenciones claras).
 
 | Capa | Elección | Justificación |
 |---|---|---|
-| Lenguaje | **TypeScript** en todo | Un solo lenguaje; las fórmulas actuales son JS y se portan casi directo |
-| Frontend | **Next.js (React, App Router) + Tailwind + shadcn/ui** | Coincide con las pistas de la app original; ecosistema amplio, accesible |
-| Tablas/formularios | **TanStack Table + React Hook Form + Zod** | La matriz del plan (12 meses × costos) y los subformularios dinámicos por plantilla se validan con el mismo esquema Zod que usa el servidor |
-| Backend | **Next.js (Route Handlers/Server Actions)** + paquete `domain` | Menos piezas móviles para un equipo pequeño; separable luego |
-| Dominio | **`packages/domain`** (TS puro, sin I/O) | Aquí viven `avancePlan`, `consolidado`, `semáforos`, `clasificación de actividades`; 100 % probado |
-| Base de datos | **PostgreSQL 16** | Integridad (únicos parciales, FK), `JSONB` para datos específicos, extensión `unaccent`/`pg_trgm` (reemplaza `quitarAcentos`), secuencias atómicas, vistas, auditoría por *triggers* |
-| Acceso a datos | **Drizzle ORM + migraciones SQL** | SQL-first, tipado, buen soporte de índices parciales/JSONB |
-| Autenticación | **OIDC** (Keycloak autoalojado, o el directorio institucional si es Microsoft 365/Google) con Auth.js | Roles: Técnico, Coordinador/Jefe, Director Provincial, Planificación (admin), Fomento (lectura), Auditor; alcance por provincia/departamento/programa aplicado **en servidor** |
-| Documentos PDF | **Chromium headless (Playwright)** renderizando las mismas plantillas HTML/CSS de impresión | Fidelidad inmediata con los modelos oficiales; evita rediseñarlos |
-| Excel | **exceljs** | Reemplaza el ZIP manual |
-| Trabajos asíncronos | **pg-boss** (cola sobre PostgreSQL) | PDF masivos, exportaciones, IA; sin Redis |
-| Gráficos | **Recharts** (o ECharts) | Los gráficos de la maqueta son barras/matriz |
-| IA (opcional, fase final) | **Pasarela de IA en servidor** (proveedor intercambiable), llave en secretos, redacción de datos, resultado como *sugerencia* revisable | Resuelve la fuga de llave y habilita decidir proveedor tras revisión de gobernanza de datos |
-| Pruebas | **Vitest** (dominio), **Playwright** (E2E), **pruebas de paridad contra la maqueta** | Ver §4.2 |
-| CI/CD | **GitHub Actions** → contenedores Docker | Entornos dev / staging / prod |
-| Infra | **Docker Compose** en VM institucional o nube aprobada; PostgreSQL con respaldo diario + PITR; proxy TLS (Caddy/Nginx) | Sujeto a política de alojamiento (§7) |
-| Observabilidad | Logs estructurados (pino) + Sentry (o equivalente aprobado) | Detectar fallos en provincias |
-| Monorepo | **pnpm + Turborepo**: `apps/web`, `packages/domain`, `packages/db`, `packages/ui` | |
+| Lenguaje | **TypeScript** en todo | Una sola base de habilidades; las fórmulas actuales son JS y se portan casi directo; el tipado reduce errores del código generado |
+| Frontend | **React + Vite** (aplicación de una página) + Tailwind + componentes shadcn/ui | Se publica como archivos estáticos servidos por Nginx: sin proceso de servidor extra |
+| Tablas y formularios | **TanStack Table / Query**, **React Hook Form + Zod** | La matriz del plan (12 meses × costos) y los subformularios dinámicos validan con el mismo esquema que el servidor |
+| **Web service** | **Node.js 22 LTS + Fastify**, REST/JSON con documentación **OpenAPI** | Es el «web service» solicitado; permite integraciones futuras |
+| Dominio | **`packages/domain`** (TS puro, sin I/O) | Fórmulas, clasificación de actividades, semáforos; 100 % probado |
+| Base de datos | **PostgreSQL 16** (servidor propio) | Gratuito; integridad (únicos parciales, llaves foráneas), `JSONB` para datos específicos, `unaccent` (reemplaza `quitarAcentos`), secuencias atómicas, auditoría por *triggers* |
+| Acceso a datos | **Drizzle ORM** + migraciones SQL versionadas | SQL-first, tipado |
+| Autenticación | **Cuentas propias**: argon2id, sesión en cookie `HttpOnly + Secure + SameSite`, sesiones en PostgreSQL, bloqueo por intentos, cambio obligatorio de contraseña inicial, protección CSRF, límite de peticiones. **Adaptador LDAP/Active Directory opcional** si IPACOOP lo tiene | Sin servicio adicional (se evita Keycloak); MFA TOTP como mejora posterior |
+| Autorización | **Perfiles + alcance** (provincia, departamento, programa) aplicados en el servidor en cada consulta; pruebas automáticas de acceso cruzado | Ver §4.3 |
+| Auditoría | Tabla `audit_log` solo-inserción alimentada por *triggers*; el usuario de la aplicación no puede modificarla | Reemplaza la bitácora de 500 registros de la maqueta |
+| Reportes | Impresión/PDF del navegador con la CSS de impresión de la maqueta; **exceljs** en el servidor para Excel | Evita instalar un navegador sin cabeza en el servidor |
+| Gráficos | **Recharts** | Los gráficos de la maqueta son barras y matriz |
+| Pruebas | **Vitest** (dominio y API), **Playwright** (flujos principales), **pruebas de paridad contra la maqueta** | §4.2 |
+| Servidor web | **Nginx** (TLS con certificado de la CA interna, compresión, cabeceras de seguridad) | |
+| Ejecución | **systemd** para el servicio Node (Docker opcional si la granja ya lo usa) | Mínimo mantenimiento |
+| Código y CI | Repositorio Git + **GitHub Actions** (o el CI interno) que genera un paquete desplegable | Despliegue con un script; se puede hacer sin internet en el servidor |
+| Respaldos | `pg_dump` nocturno + archivado de WAL a otro servidor/almacenamiento; prueba de restauración antes del go-live | |
 
-### 4.1 Modelo de datos (esquema inicial)
+**Sin nube y sin servicios externos en tiempo de ejecución.**
 
-- **Catálogos (versionados por año):** `provincia`, `direccion`, `departamento`, `programa`, `departamento_programa(año)`, `actividad`, `actividad_codigo(depto, programa)`, `plantilla_datos(versión, esquema JSON)`, `actividad_plantilla`, `cooperativa(id, n.º registro, nombre, siglas, tipo, provincia, estado)`.
-- **Seguridad:** `usuario`, `rol`, `usuario_alcance(provincia, departamento, programa)`, `audit_log` (solo-inserción, por *triggers*, con usuario real).
-- **Plan:** `plan_anual(direccion, departamento, año, estado)` **único** por esos tres campos → `plan_seccion(programa)` → `plan_actividad(actividad, necesidad, objetivo, meta, costo_viaticos, costo_alquiler, costo_transporte)` → `plan_actividad_mes(mes, cantidad, datos JSONB)`. Los totales son columnas generadas/vistas, no datos duplicados.
-- **Mensual:** `informe_mensual(direccion, año, mes)` **único** → `informe_aporte(autor, departamento, programa, fecha, logros, dificultades)` → `informe_fila(actividad, cooperativa_id, programada, resumen, estado, mujeres, hombres, jovenes, adultos, mayores, coop_atendidas, capacitaciones, presupuesto_ejec, datos JSONB)`. Las cifras que entran en fórmulas son **columnas reales**, no JSON.
-- **Técnico:** `informe_tecnico`, `tecnico_pendiente(estatus)`, `respuesta_coordinador`, `secuencia_control(depto, provincia, programa, año)` con generación atómica y restricción única.
-- **Cierres:** `cierre_mensual` / `consolidado_snapshot` (cifras congeladas, quién y cuándo cerró).
-- **IA:** `hallazgo(origen, severidad, estado)` ligados al informe técnico.
+### 4.1 Topología en la granja de servidores
+
+| Servidor | Contenido | Dimensionamiento estimado* |
+|---|---|---|
+| **VM-App** | Nginx (archivos estáticos + proxy), servicio Node (API) | 2–4 vCPU · 4–8 GB RAM · 40 GB |
+| **VM-BD** | PostgreSQL 16, tareas de respaldo | 2–4 vCPU · 8 GB RAM · 100 GB |
+
+\*Estimación mía; el volumen es pequeño (decenas de miles de filas por año). Solo la VM-BD es accesible desde la VM-App (puerto 5432); los usuarios acceden únicamente a la VM-App por HTTPS. Un entorno de **pruebas/aceptación** puede ser un segundo sitio de Nginx + una segunda base de datos en las mismas VM.
 
 ### 4.2 Estrategia de paridad con la maqueta
-
-Como la maqueta contiene «las fórmulas reales», se usa como **oráculo ejecutable**:
-1. Extraer `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular` en un arnés Node (con *stubs* mínimos de DOM).
+Como la maqueta contiene las fórmulas definitivas, se usa como **oráculo ejecutable**:
+1. Extraer `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular` a un arnés Node (con *stubs* mínimos de DOM).
 2. Generar ~30 escenarios (JSON) con casos límite: plan sin acciones, sobre-ejecución, actividad no programada, dos técnicos, filas sin sección, departamento con convención antigua.
-3. Guardar entradas/salidas como **pruebas doradas**; el paquete `domain` en TS debe reproducirlas bit a bit — salvo donde la Oficina decida cambiar la regla (§3.2), y entonces la diferencia queda documentada y aprobada.
+3. Guardar entradas y salidas como **pruebas doradas**; el paquete `domain` debe reproducirlas exactamente.
+
+### 4.3 Perfiles propuestos (a validar con Planificación)
+
+| Perfil | Alcance | Puede |
+|---|---|---|
+| **Administrador del sistema (TI)** | Todo | Usuarios, roles, bloqueos, parámetros; no edita contenido de negocio |
+| **Oficina de Planificación** | Nacional | Administra catálogos; ve todo; indicadores; bitácora; reabre planes; marca recepción |
+| **Director/a Provincial** | Su provincia | Captura y envía el plan anual de su provincia; ve mensuales y técnicos de su provincia |
+| **Técnico/a** | Su provincia + departamento + programa | Captura informes mensuales y técnicos propios |
+| **Coordinador/a de departamento** | Su departamento, nacional | Monitorea su departamento; responde informes técnicos; indicadores de su departamento |
+| **Dirección de Fomento** | Lectura, por departamento | Monitoreo de solo lectura |
+| **Auditor/a** | Lectura | Consulta la bitácora |
+
+**Estados del plan (mínimo para la «recepción»):** *Borrador → Enviado/Recibido* (con fecha y usuario); Planificación puede reabrir. Es una adición pequeña a la maqueta que da sentido a «recepción del plan anual»; confirmar.
+
+### 4.4 Modelo de datos (esquema inicial)
+- **Catálogos (versionados por año):** `provincia`, `direccion`, `departamento`, `programa`, `departamento_programa(año)`, `actividad`, `actividad_codigo(depto, programa)`, `plantilla_datos`, `actividad_plantilla`, `cooperativa`.
+- **Seguridad:** `usuario`, `rol`, `usuario_alcance(provincia, departamento, programa)`, `sesion`, `audit_log`.
+- **Plan:** `plan_anual(direccion, departamento, año, estado)` **único** → `plan_seccion(programa)` → `plan_actividad(actividad, necesidad, objetivo, meta, costo_viaticos, costo_alquiler, costo_transporte)` → `plan_actividad_mes(mes, cantidad, datos JSONB)`.
+- **Mensual:** `informe_mensual(direccion, año, mes)` **único** → `informe_aporte(autor, departamento, programa, logros, dificultades)` → `informe_fila(actividad, cooperativa, programada, resumen, estado, mujeres, hombres, jovenes, adultos, mayores, coop_atendidas, capacitaciones, presupuesto_ejec, datos JSONB)`. Las cifras que entran en fórmulas son **columnas reales**.
+- **Técnico:** `informe_tecnico`, `tecnico_pendiente(estatus)`, `respuesta_coordinador`, `secuencia_control` (atómica, única).
 
 ---
 
 ## 5. Plan de desarrollo (inicio: lunes 9 de noviembre de 2026)
 
-**Supuestos:** equipo de 1 líder técnico, 2 desarrolladores full-stack, 0,5 QA/analista y un dueño de producto de la Oficina de Planificación con disponibilidad semanal. Sprints de 2 semanas. Feriados (verificar calendario oficial): martes 10-nov, martes 8-dic, 25-dic, 1-ene; capacidad reducida en el sprint de fin de año.
+### 5.1 Forma de trabajo con Claude Code
+- **Desarrollo guiado por especificación:** este documento y la maqueta son la fuente; se crea un `CLAUDE.md` con convenciones (estructura del monorepo, reglas de seguridad, «las fórmulas no se tocan»).
+- **Rebanadas verticales** (base de datos → API → pantalla → prueba) con pruebas automáticas en cada una; sesiones paralelas en ramas separadas para módulos independientes.
+- **Roles humanos mínimos:** (1) *responsable técnico* que revisa el código, administra los servidores y despliega; (2) *dueño de producto de Planificación* con tiempo diario para validar pantallas y reglas; (3) *administrador de infraestructura* que entrega las VM.
+- **Congelamiento de alcance** una vez iniciada cada entrega; cambios nuevos entran a la siguiente.
 
-### 5.1 Semana 0 — arranque (9–13 nov)
-
+### 5.2 Semana 0 — arranque (9–13 nov; martes 10 feriado)
 | Día | Entregable |
 |---|---|
-| Lun 9 | Kickoff con Planificación; confirmar las decisiones de §7; crear monorepo, CI y ADR de stack |
-| Mar 10 | *Feriado* |
-| Mié 11 | Arnés oráculo (§4.2) + semillas de catálogos; ER v1 |
-| Jue 12 | Entornos dev/staging; migración 0001 de catálogos; decidir proveedor de identidad |
-| Vie 13 | **Demo del esqueleto** (login + lectura de catálogos); backlog de S1 refinado; sesión agendada para reconciliar fórmulas |
+| Lun 9 | Plan v2 acordado; **solicitud formal de las 2 VM** y accesos (fecha tope de entrega: **miércoles 18-nov**) |
+| Mié 11 | Monorepo, `CLAUDE.md`, CI, migraciones base, semillas de catálogos (depuradas), arnés oráculo |
+| Jue 12 | Autenticación + roles + alcance (esqueleto), `audit_log`, pantalla de ingreso |
+| Vie 13 | Demo del esqueleto en entorno temporal; backlog de R1 listo |
 
-### 5.2 Hitos
-
-| Sprint | Fechas | Alcance | Hito de salida |
+### 5.3 Entregas
+| Entrega | Fecha | Alcance | Criterio de salida |
 |---|---|---|---|
-| **S1** | 16–27 nov | Autenticación y roles con alcance; administración de catálogos (años, programas por departamento); importador de semillas; **Plan Anual: captura de matriz y costos**, guardado, integración por sección | Planificación carga un plan completo |
-| **S2** | 30 nov–11 dic | Plan Anual: subformularios por mes y por familia de plantilla, validaciones, repositorio de planes con filtros, **PDF del plan**, bitácora real; piloto con 2 provincias | **R1 (11-dic): Plan Anual 2027 en producción** |
-| **S3** | 14 dic–8 ene | **Informe Mensual:** filas, catálogo de cooperativas con búsqueda, *programada* automática, modal de impacto, aporte multi-técnico; paquete `domain` con avance y pruebas de paridad | Mensual capturable |
-| **S4** | 11–22 ene | Repositorio de mensuales; **avance plan-vs-ejecutado** por mes/trimestre; PDF del mensual; capacitación a técnicos | **R2 (22-ene): Plan + Mensual** antes de los primeros reportes de febrero |
-| **S5** | 25 ene–5 feb | **Informe Técnico:** control homologado atómico, pendientes, respuesta del coordinador y su control, seguimiento | Flujo técnico → coordinador completo |
-| **S6** | 8–19 feb | Consolidados mensual y trimestral (calculados + cierre/instantánea); Excel Planificado/Ejecutado; vista de Fomento | **R3:** consolidados antes del cierre del T1 |
-| **S7** | 22 feb–5 mar | **Indicadores:** KPIs/semáforos, matriz programa×mes, alertas, gráficos, bitácora consultable, exportes CSV | Panel de Planificación |
-| **S8** | 8–19 mar | Pasarela de IA (si se aprueba), importador del respaldo JSON, endurecimiento (pruebas de seguridad, carga, respaldos/restauración), manuales y capacitación final | **Go-live completo: 20-mar-2027** |
+| **R1 — Plan Anual** | **Mar 1-dic** | Usuarios, perfiles y alcance; administración de catálogos; **captura del Plan Anual** (matriz ENE–DIC, costos, catálogo de actividades filtrado por departamento/programa, códigos, subformularios por mes y plantilla, integración por sección); estados Borrador/Enviado; repositorio de planes con filtros; impresión; bitácora | Una dirección provincial captura y envía su plan; Planificación lo recibe y lo consulta |
+| **R2 — Mensual y avance** | Vie 11-dic | Informe Mensual completo (cooperativas con búsqueda, *programada* automática, impacto, aporte multi-técnico); repositorio de mensuales; **avance plan vs ejecutado** por mes y trimestre | Pruebas de paridad del avance en verde |
+| **R3 — Técnico y consolidados** | Mar 22-dic | Informe Técnico con control homologado atómico, pendientes y respuesta del coordinador; consolidados mensual y trimestral calculados; Excel Planificado/Ejecutado | Flujo técnico → coordinador completo |
+| **R4 — Indicadores y cierre** | Mié 30-dic (colchón 31-dic) | Indicadores (KPIs, semáforos, matriz, alertas, gráficos, CSV); vista de Fomento; bitácora consultable; endurecimiento de seguridad, carga, respaldos/restauración; manuales y capacitación | **Sistema completo en producción** |
 
-### 5.3 Definición de «terminado» por entrega
-Pruebas de dominio dorado en verde · E2E del flujo principal · roles verificados en servidor (prueba de acceso cruzado entre provincias) · bitácora con usuario real · PDF idéntico al modelo oficial · respaldo restaurado en staging.
+Feriados considerados: 10-nov, 8-dic, 24/25-dic; verificar calendario oficial.
+
+### 5.4 Definición de «terminado»
+Pruebas de dominio doradas en verde · prueba de acceso cruzado entre provincias/departamentos · bitácora con usuario real · respaldo restaurado en pruebas · validación por el dueño de producto en entorno de aceptación · documentación de despliegue.
 
 ---
 
-## 6. Riesgos principales
+## 6. Riesgos
 
 | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|
-| Fórmulas sin definición única (§3.2) | Alta | Alto | Sesión de reconciliación en S1; matriz de decisiones firmada por el dueño de producto |
-| Cambios de reglas continuos (59 iteraciones) | Alta | Medio | Catálogos administrables y versionados; reglas en `domain` con pruebas |
-| Conectividad en provincias (Darién, comarcas) | Media | Alto | Autoguardado de borradores local (IndexedDB), reintentos, formularios ligeros |
-| Hosting / identidad no definidos | Media | Alto | Decidir en semana 0 (§7); diseño agnóstico (contenedores + OIDC) |
-| Datos sensibles en IA externa | Media | Alto | IA al final y opcional; redacción; aprobación formal previa |
-| Calidad de catálogo de cooperativas | Alta | Medio | Depuración con Registro Cooperativo; identificador estable |
-| Fecha de captura del Plan 2027 | Media | Alto | R1 priorizado el 11-dic; plan B: capturar en la maqueta y migrar con el JSON |
-| Adopción por técnicos | Media | Medio | Piloto en S2, capacitación en S4 y S8, soporte en la primera semana de cada mes |
+| **VM, red y certificados no listos a tiempo para el 1-dic** | Media-alta | Muy alto | Pedir las VM hoy con fecha tope 18-nov; desarrollar y hacer aceptación en un entorno temporal; plan B: ambas funciones en una sola VM |
+| Plazo de 3 semanas para R1 | Alta | Alto | R1 limitado a seguridad + Plan Anual + repositorio de planes; todo lo demás después |
+| Revisión humana como cuello de botella | Media | Alto | Dueño de producto con validación diaria; pruebas automáticas; entregas pequeñas |
+| Cambios de reglas durante el desarrollo (históricamente frecuentes) | Alta | Medio | Catálogos administrables; congelar alcance por entrega |
+| Conectividad en provincias | Media | Alto | Formularios ligeros; autoguardado de borrador en el navegador y reintento |
+| Seguridad en intranet | Media | Alto | Roles aplicados en servidor, pruebas de acceso cruzado, TLS, bloqueo por intentos, auditoría; revisión de seguridad antes de R4 |
+| Calidad del catálogo de cooperativas | Alta | Medio | Depuración mínima antes de cargar; mejora continua posterior |
+| Adopción por técnicos | Media | Medio | Piloto con 1–2 provincias en R1; capacitación en R2 y R4 |
 
 ---
 
-## 7. Decisiones que necesito de usted (semana 0)
+## 7. Pendientes menores (no bloquean el arranque)
 
-1. ¿Existe el repositorio de la app web original (Next/React) del que la maqueta es «espejo»? ¿Se reutiliza?
-2. **Equipo y presupuesto reales** (el plan supone ~3,5 FTE) y fecha límite firme para el Plan Anual 2027.
-3. **Alojamiento:** ¿servidor institucional, nube aprobada por la AIG u otra? ¿Qué directorio de usuarios usa IPACOOP (Microsoft 365, Google, Active Directory)?
-4. **Fórmulas:** fecha para la sesión de reconciliación de §3.2 (6 puntos).
-5. ¿Los consolidados de captura manual se mantienen?
-6. ¿Se autoriza enviar texto de informes técnicos a un proveedor de IA externo? (Tratamiento de datos personales según la Ley 81 de 2019; validar con Asesoría Legal.)
-7. ¿Hay datos reales ya capturados en navegadores de las provincias que deban migrarse?
+1. Sistema operativo y versión de las VM (se asume Linux, p. ej. Ubuntu Server LTS o RHEL-compatible), y si el servidor de aplicación tiene salida a internet para instalar paquetes (si no, se despliega con paquetes ya construidos).
+2. Nombre interno (DNS) y certificado TLS de la CA institucional.
+3. ¿IPACOOP tiene Active Directory/LDAP que se deba integrar? (si no, cuentas propias).
+4. Confirmar los perfiles de §4.3 y el estado «Enviado/Recibido» del plan.
+5. Confirmar que los formularios de consolidado manual no se construyen (§2).
+6. Nombre y disponibilidad del responsable técnico y del dueño de producto.
 
 ---
 
-## 8. Archivos de referencia en este repositorio
-
+## 8. Archivos de referencia
 - `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` — maqueta original (oráculo de fórmulas).
 - `referencia/seeds/catalogos.json` — direcciones, departamentos, programas, tipos, estados, cargos, 1.381 cooperativas.
 - `referencia/seeds/codigos-actividad.json` — 72 actividades con sus códigos.
