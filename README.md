@@ -13,6 +13,8 @@ Sistema web interno para que cada dirección provincial capture su **Plan Anual*
 | [`docs/guia-levantamiento-requerimientos.md`](docs/guia-levantamiento-requerimientos.md) | Guía para el líder funcional: decisiones a cerrar por módulo, agenda de sesiones, insumos y entrega del requerimiento final (vie 13-nov) |
 | [`docs/guia-entorno-de-pruebas.md`](docs/guia-entorno-de-pruebas.md) | Paso a paso para el equipo técnico: instalación y verificación del entorno de pruebas (Ubuntu 24.04, PostgreSQL 16, Django, Gunicorn, Nginx) e instalación de versiones |
 
+Versiones en Word de las guías (generadas a partir de los `.md`): `docs/word/Guia_Levantamiento_Requerimientos.docx` y `docs/word/Guia_Entorno_de_Pruebas.docx`.
+
 ## Referencia
 
 | Ruta | Contenido |
