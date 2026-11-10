@@ -307,8 +307,8 @@ Además, en todas: nombres de las cooperativas involucradas (del catálogo).
 
 ### 6.3 Disponibilidad, respaldo y recuperación
 - RNF-DIS-01 Disponible en horario laboral (lun–vie 7:00–18:00) con objetivo de 99 %; mantenimientos programados fuera de horario.
-- RNF-DIS-02 Respaldo completo diario + archivado continuo (WAL); retención 30 días diarios y 12 mensuales; copia fuera del servidor de BD.
-- RNF-DIS-03 RPO ≤ 24 h (≤ 15 min con WAL) · RTO ≤ 4 h. Prueba de restauración antes de cada entrega a producción.
+- RNF-DIS-02 Respaldo completo diario (`pg_dump`); retención 30 días diarios y 12 mensuales; copia fuera del servidor de BD.
+- RNF-DIS-03 Pérdida máxima de datos ≤ 24 h · restablecimiento ≤ 1 día hábil (sistema administrativo, no de misión crítica). Prueba de restauración antes de cada entrega a producción.
 
 ### 6.4 Usabilidad y accesibilidad
 - RNF-USA-01 Interfaz en español, terminología institucional de la maqueta.
@@ -320,12 +320,12 @@ Además, en todas: nombres de las cooperativas involucradas (del catálogo).
 ### 6.5 Mantenibilidad y calidad
 - RNF-MAN-01 Código en repositorio Git con revisión; pruebas automáticas en cada cambio.
 - RNF-MAN-02 Fórmulas en un único módulo de dominio con pruebas de paridad contra la maqueta (100 % de las reglas de §4).
-- RNF-MAN-03 API documentada con OpenAPI.
+- RNF-MAN-03 Web service (API REST) documentado con OpenAPI.
 - RNF-MAN-04 Migraciones de base de datos versionadas y reversibles.
 - RNF-MAN-05 Manuales: usuario (por perfil), administración, instalación/despliegue, respaldo/restauración.
 
 ### 6.6 Infraestructura y operación
-- RNF-INF-01 Dos servidores virtuales en la granja del IPACOOP: aplicación (Nginx + Node.js) y base de datos (PostgreSQL 16); sistema operativo Linux (SUP-16).
+- RNF-INF-01 Dos servidores virtuales en la granja del IPACOOP: aplicación (Nginx + Gunicorn/Django) y base de datos (PostgreSQL 16); sistema operativo Linux (SUP-16).
 - RNF-INF-02 Solo software libre, sin costo de licencias.
 - RNF-INF-03 Entornos: producción y pruebas/aceptación.
 - RNF-INF-04 Registros técnicos (logs) con rotación; monitoreo de disponibilidad y espacio en disco.
@@ -335,7 +335,7 @@ Además, en todas: nombres de las cooperativas involucradas (del catálogo).
 
 ## 7. Interfaces
 - **Usuario:** navegador web en la intranet.
-- **Web service:** API REST/JSON autenticada, documentada (OpenAPI); es la única vía de acceso a los datos (la interfaz la consume).
+- **Web service:** API REST/JSON autenticada y documentada (OpenAPI) para consulta de catálogos, planes, informes y avance; la interfaz web es generada por la propia aplicación y no depende de la API.
 - **Externas:** ninguna. Opcionales: LDAP/AD (RF-SEG-09) y SMTP institucional (RF-NOT-01).
 
 ---

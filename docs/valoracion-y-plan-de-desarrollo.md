@@ -1,9 +1,11 @@
-# Sistema de Captura de Informes IPACOOP — Valoración, stack y plan de desarrollo (v2)
+# Sistema de Captura de Informes IPACOOP — Valoración, stack y plan de desarrollo (v3)
 
 Oficina de Planificación · documento de trabajo · v2 del 9 de noviembre de 2026
 Base del análisis: `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` (8.117 líneas, ~233 funciones, 9 vistas, ~59 iteraciones de requisitos visibles en los comentarios «Task N»).
 
-**Cambios respecto a la v1** (según las respuestas de la Oficina):
+**v3 (10-nov):** stack simplificado a una sola aplicación Django por tratarse de una plataforma administrativa no crítica (§4).
+
+**Cambios de la v2 respecto a la v1** (según las respuestas de la Oficina):
 - No existe aplicación previa: se construye desde cero (web + web service + base de datos).
 - Presupuesto bajo → solo software libre, sin licencias; desarrollo con Claude Code.
 - Hospedaje **interno**: dos servidores virtuales (aplicación y base de datos). Se elimina todo lo que dependa de nube o servicios externos.
@@ -17,8 +19,8 @@ Base del análisis: `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` (
 ## 1. Resumen ejecutivo
 
 - La maqueta es una **especificación funcional muy completa** (reglas, fórmulas, catálogos, formatos de impresión), pero no es una base de código reutilizable: un solo HTML, datos en el navegador, sin usuarios ni servidor. Se reconstruye siguiendo la maqueta como especificación y como **oráculo de pruebas**.
-- **Arquitectura propuesta:** aplicación de una página (React) + **web service REST** (Node.js/Fastify) + **PostgreSQL**, en dos máquinas virtuales Linux. Todo software libre; costo de licencias = 0.
-- **Seguridad:** cuentas propias con contraseñas protegidas (argon2id), sesiones seguras, **perfiles (roles) con alcance por provincia / departamento / programa aplicado en el servidor**, bitácora de auditoría que no se puede alterar desde la aplicación, TLS interno.
+- **Arquitectura propuesta (v3, simplificada):** una sola aplicación web **Django** (Python) con su **web service REST** y **PostgreSQL**, en dos máquinas virtuales Linux. Al no ser un sistema de misión crítica se eligió lo más simple de construir y mantener. Todo software libre; costo de licencias = 0.
+- **Seguridad:** autenticación de Django con contraseñas protegidas (argon2), sesiones seguras, **perfiles (roles) con alcance por provincia / departamento / programa aplicado en el servidor**, bitácora de auditoría que no se puede alterar desde la aplicación, TLS interno.
 - **Calendario en 4 entregas:** R1 Plan Anual (1-dic) → R2 Informe Mensual y avance (11-dic) → R3 Informe Técnico y consolidados (22-dic) → R4 Indicadores, Fomento y cierre (30-dic, con 31-dic de colchón).
 - **El calendario es posible pero exigente.** Claude Code acelera la programación, no el aprovisionamiento de servidores, la revisión humana ni las pruebas de aceptación. El mayor riesgo para el 1-dic es que las máquinas virtuales y accesos no estén listos a tiempo (ver §6).
 
@@ -70,7 +72,7 @@ Origen: `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular`.
 | Semáforo | `≥ 75 % verde · ≥ 40 % ámbar · < 40 % rojo` |
 | Alerta de informe técnico sin respuesta | `> 15 días` desde la fecha de la actividad |
 
-**Regla de implementación:** las fórmulas viven en un único paquete (`packages/domain`) y se verifican con **pruebas de paridad contra la maqueta** (§4.2). Como la Oficina las considera definitivas, cualquier diferencia entre el sistema y la maqueta es un defecto, no una decisión.
+**Regla de implementación:** las fórmulas viven en un único módulo (`planificacion/calculos.py`) y se verifican con **pruebas de paridad contra la maqueta** (§4.3). Como la Oficina las considera definitivas, cualquier diferencia entre el sistema y la maqueta es un defecto, no una decisión.
 
 *Nota informativa (no bloquea):* en la interfaz se rotulará cada porcentaje con su nombre exacto («Avance del plan por acciones», «Cumplimiento técnico del consolidado»), porque son métricas distintas y un mismo programa-mes puede mostrar valores diferentes en cada una.
 
@@ -83,54 +85,63 @@ Origen: `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular`.
 | Duplicados | Deduplicación heurística por «huella» de texto (`fusionarInformes`, `fusionarPlanes`) | Restricciones únicas + filas con autor |
 | Plantillas de datos | Inferidas con regex sobre el nombre de la actividad | Relación explícita actividad → plantilla en catálogo |
 | Control de números | Secuencia 001–500 elegida a mano | Secuencia atómica por (departamento, provincia, programa, año) |
-| Impresión/Excel | `window.open` + ZIP escrito a mano | Impresión del navegador con la misma CSS + `exceljs` |
+| Impresión/Excel | `window.open` + ZIP escrito a mano | Impresión del navegador con la misma CSS + `openpyxl` |
 | Catálogos | Constantes en el código; programas por departamento cambiaron tres veces | Tablas administrables por Planificación, versionadas por año |
 | Calidad de datos | `Panampa Sede Central`, `Dirección de Fomento de Cooperativo`; cooperativas sin identificador (427 liquidadas, 276 inactivas de 1.381) | Depuración antes de cargar las semillas; identificador interno |
 
 ---
 
-## 4. Stack tecnológico recomendado
+## 4. Stack tecnológico recomendado (v3 — simplificado)
 
-**Criterios:** costo de licencias cero, dos servidores virtuales, uso interno, un solo lenguaje, lógica de negocio pesada, y desarrollo asistido por Claude Code (que rinde mejor con TypeScript tipado, pruebas automáticas y convenciones claras).
+**Criterio rector (decisión de la Oficina, 10-nov):** es una plataforma **administrativa** de planificación, **no de misión crítica**. Se prioriza lo más simple de construir, operar y mantener: **una sola aplicación, un solo lenguaje, el mínimo de piezas**, todo software libre.
 
+### 4.0 Qué cambió frente a la v2
+| v2 (descartado) | v3 (recomendado) | Por qué |
+|---|---|---|
+| Aplicación de una página (React) + API separada (Node/Fastify) | **Una sola aplicación web Django** con pantallas generadas en el servidor | Una pieza en vez de dos; sin compilación del frontend ni gestión de estado en el navegador |
+| Pantallas de usuarios, perfiles y catálogos hechas a mano | **Administración de Django** (incluida) | Usuarios, grupos/perfiles, permisos y los ~10 catálogos quedan resueltos casi sin código |
+| Autenticación propia (sesiones, CSRF, argon2, bloqueo) | **Autenticación de Django** + `django-axes` | Probado y mantenido; menos código de seguridad propio |
+| Bitácora con *triggers* SQL | **`django-simple-history`** (historial por registro) + registro de ingresos | Configuración, no desarrollo |
+| Monorepo pnpm/Turborepo, 3 paquetes | **Un solo proyecto** Django | Más fácil de entender y mantener |
+| Respaldo con archivado continuo (WAL) | **`pg_dump` diario** con retención | Suficiente para un sistema no crítico (pérdida máxima: 1 día) |
+
+### 4.1 Componentes
 | Capa | Elección | Justificación |
 |---|---|---|
-| Lenguaje | **TypeScript** en todo | Una sola base de habilidades; las fórmulas actuales son JS y se portan casi directo; el tipado reduce errores del código generado |
-| Frontend | **React + Vite** (aplicación de una página) + Tailwind + componentes shadcn/ui | Se publica como archivos estáticos servidos por Nginx: sin proceso de servidor extra |
-| Tablas y formularios | **TanStack Table / Query**, **React Hook Form + Zod** | La matriz del plan (12 meses × costos) y los subformularios dinámicos validan con el mismo esquema que el servidor |
-| **Web service** | **Node.js 22 LTS + Fastify**, REST/JSON con documentación **OpenAPI** | Es el «web service» solicitado; permite integraciones futuras |
-| Dominio | **`packages/domain`** (TS puro, sin I/O) | Fórmulas, clasificación de actividades, semáforos; 100 % probado |
-| Base de datos | **PostgreSQL 16** (servidor propio) | Gratuito; integridad (únicos parciales, llaves foráneas), `JSONB` para datos específicos, `unaccent` (reemplaza `quitarAcentos`), secuencias atómicas, auditoría por *triggers* |
-| Acceso a datos | **Drizzle ORM** + migraciones SQL versionadas | SQL-first, tipado |
-| Autenticación | **Cuentas propias**: argon2id, sesión en cookie `HttpOnly + Secure + SameSite`, sesiones en PostgreSQL, bloqueo por intentos, cambio obligatorio de contraseña inicial, protección CSRF, límite de peticiones. **Adaptador LDAP/Active Directory opcional** si IPACOOP lo tiene | Sin servicio adicional (se evita Keycloak); MFA TOTP como mejora posterior |
-| Autorización | **Perfiles + alcance** (provincia, departamento, programa) aplicados en el servidor en cada consulta; pruebas automáticas de acceso cruzado | Ver §4.3 |
-| Auditoría | Tabla `audit_log` solo-inserción alimentada por *triggers*; el usuario de la aplicación no puede modificarla | Reemplaza la bitácora de 500 registros de la maqueta |
-| Reportes | Impresión/PDF del navegador con la CSS de impresión de la maqueta; **exceljs** en el servidor para Excel | Evita instalar un navegador sin cabeza en el servidor |
-| Gráficos | **Recharts** | Los gráficos de la maqueta son barras y matriz |
-| Pruebas | **Vitest** (dominio y API), **Playwright** (flujos principales), **pruebas de paridad contra la maqueta** | §4.2 |
-| Servidor web | **Nginx** (TLS con certificado de la CA interna, compresión, cabeceras de seguridad) | |
-| Ejecución | **systemd** para el servicio Node (Docker opcional si la granja ya lo usa) | Mínimo mantenimiento |
-| Código y CI | Repositorio Git + **GitHub Actions** (o el CI interno) que genera un paquete desplegable | Despliegue con un script; se puede hacer sin internet en el servidor |
-| Respaldos | `pg_dump` nocturno + archivado de WAL a otro servidor/almacenamiento; prueba de restauración antes del go-live | |
+| Lenguaje | **Python 3.12** | Legible, muy usado en el sector público, abundan desarrolladores para el mantenimiento |
+| Framework | **Django 5.2 LTS** (soporte hasta abril de 2028) | Incluye ORM, migraciones, autenticación, permisos, administración, formularios, protección CSRF/XSS/SQL y plantillas |
+| Interactividad | **HTMX + Alpine.js** (sin compilación) | Suficiente para la matriz del plan (totales automáticos, filas que se agregan/duplican, ventana de datos específicos por mes) sin una SPA |
+| Estilos | **Bootstrap 5** (o la CSS de la maqueta reutilizada) | Componentes listos; la CSS de impresión de la maqueta se reutiliza tal cual |
+| Base de datos | **PostgreSQL 16** | Gratuita, robusta; `JSONB` para datos específicos y `unaccent` para búsquedas sin acentos |
+| **Web service** | **Django REST Framework**, acotado: consulta de catálogos, planes, informes y avance (JSON) | Cumple el requisito de web service para integraciones futuras sin que la interfaz dependa de él |
+| Fórmulas | Módulo `planificacion/calculos.py` (funciones puras) | Una sola ubicación para todas las reglas de §3.2 |
+| Excel | **openpyxl** | Planificado / Ejecutado |
+| Impresión | Navegador con la **CSS de impresión de la maqueta** | Sin generar PDF en el servidor |
+| Gráficos | **Chart.js** | Barras y matriz de los indicadores |
+| Seguridad adicional | `django-axes` (bloqueo por intentos), hash **argon2**, cookies seguras, cierre de sesión por inactividad | |
+| Auditoría | `django-simple-history` + registro de ingresos/salidas | Quién cambió qué y cuándo, con valores anteriores |
+| Pruebas | **pytest-django** + pruebas de paridad contra la maqueta | §4.3 |
+| Servidor | **Nginx** (TLS, archivos estáticos) → **Gunicorn** (servicio `systemd`) | Configuración estándar y documentada |
 
-**Sin nube y sin servicios externos en tiempo de ejecución.**
+Descartado por innecesario para este alcance: frontend separado, contenedores obligatorios, colas de trabajos, generación de PDF en servidor, Redis, CI complejo.
 
-### 4.1 Topología en la granja de servidores
-
+### 4.2 Topología en la granja de servidores
 | Servidor | Contenido | Dimensionamiento estimado* |
 |---|---|---|
-| **VM-App** | Nginx (archivos estáticos + proxy), servicio Node (API) | 2–4 vCPU · 4–8 GB RAM · 40 GB |
-| **VM-BD** | PostgreSQL 16, tareas de respaldo | 2–4 vCPU · 8 GB RAM · 100 GB |
+| **VM-App** | Linux + Nginx + Gunicorn/Django | 2 vCPU · 4 GB RAM · 40 GB |
+| **VM-BD** | Linux + PostgreSQL 16 + respaldo diario | 2 vCPU · 4–8 GB RAM · 60 GB |
 
-\*Estimación mía; el volumen es pequeño (decenas de miles de filas por año). Solo la VM-BD es accesible desde la VM-App (puerto 5432); los usuarios acceden únicamente a la VM-App por HTTPS. Un entorno de **pruebas/aceptación** puede ser un segundo sitio de Nginx + una segunda base de datos en las mismas VM.
+\*Estimación; el volumen es pequeño. Solo la VM-App se conecta a la BD (puerto 5432); los usuarios entran por HTTPS a la VM-App. El entorno de **pruebas/aceptación** es un segundo sitio en las mismas VM con su propia base de datos.
 
-### 4.2 Estrategia de paridad con la maqueta
-Como la maqueta contiene las fórmulas definitivas, se usa como **oráculo ejecutable**:
-1. Extraer `avancePlan`, `consolFilas`, `ccCumpl`, `indicadoresCalcular` a un arnés Node (con *stubs* mínimos de DOM).
-2. Generar ~30 escenarios (JSON) con casos límite: plan sin acciones, sobre-ejecución, actividad no programada, dos técnicos, filas sin sección, departamento con convención antigua.
-3. Guardar entradas y salidas como **pruebas doradas**; el paquete `domain` debe reproducirlas exactamente.
+### 4.3 Paridad con la maqueta
+Las fórmulas son definitivas, así que se verifican contra la propia maqueta:
+1. Una sola vez, se ejecutan las funciones de la maqueta (`avancePlan`, `consolFilas`, `indicadoresCalcular`) sobre ~30 escenarios con casos límite y se guardan entradas y resultados como archivos JSON.
+2. Las pruebas de `calculos.py` deben reproducir esos resultados exactamente. Cualquier diferencia es un defecto.
 
-### 4.3 Perfiles propuestos (a validar con Planificación)
+### 4.4 Costo
+Licencias: **0**. Costos reales: los recursos de las 2 VM (ya disponibles en la granja), el uso de Claude Code y el tiempo del responsable técnico y del dueño de producto.
+
+### 4.5 Perfiles propuestos (a validar con Planificación)
 
 | Perfil | Alcance | Puede |
 |---|---|---|
@@ -144,7 +155,7 @@ Como la maqueta contiene las fórmulas definitivas, se usa como **oráculo ejecu
 
 **Estados del plan (mínimo para la «recepción»):** *Borrador → Enviado/Recibido* (con fecha y usuario); Planificación puede reabrir. Es una adición pequeña a la maqueta que da sentido a «recepción del plan anual»; confirmar.
 
-### 4.4 Modelo de datos (esquema inicial)
+### 4.6 Modelo de datos (esquema inicial)
 - **Catálogos (versionados por año):** `provincia`, `direccion`, `departamento`, `programa`, `departamento_programa(año)`, `actividad`, `actividad_codigo(depto, programa)`, `plantilla_datos`, `actividad_plantilla`, `cooperativa`.
 - **Seguridad:** `usuario`, `rol`, `usuario_alcance(provincia, departamento, programa)`, `sesion`, `audit_log`.
 - **Plan:** `plan_anual(direccion, departamento, año, estado)` **único** → `plan_seccion(programa)` → `plan_actividad(actividad, necesidad, objetivo, meta, costo_viaticos, costo_alquiler, costo_transporte)` → `plan_actividad_mes(mes, cantidad, datos JSONB)`.
@@ -156,8 +167,8 @@ Como la maqueta contiene las fórmulas definitivas, se usa como **oráculo ejecu
 ## 5. Plan de desarrollo (inicio: lunes 9 de noviembre de 2026)
 
 ### 5.1 Forma de trabajo con Claude Code
-- **Desarrollo guiado por especificación:** este documento y la maqueta son la fuente; se crea un `CLAUDE.md` con convenciones (estructura del monorepo, reglas de seguridad, «las fórmulas no se tocan»).
-- **Rebanadas verticales** (base de datos → API → pantalla → prueba) con pruebas automáticas en cada una; sesiones paralelas en ramas separadas para módulos independientes.
+- **Desarrollo guiado por especificación:** este documento y la maqueta son la fuente; se crea un `CLAUDE.md` con convenciones (estructura del proyecto Django, reglas de seguridad, «las fórmulas no se tocan»).
+- **Rebanadas verticales** (modelo → vista/pantalla → prueba) con pruebas automáticas en cada una; sesiones paralelas en ramas separadas para módulos independientes.
 - **Roles humanos mínimos:** (1) *responsable técnico* que revisa el código, administra los servidores y despliega; (2) *dueño de producto de Planificación* con tiempo diario para validar pantallas y reglas; (3) *administrador de infraestructura* que entrega las VM.
 - **Congelamiento de alcance** una vez iniciada cada entrega; cambios nuevos entran a la siguiente.
 
@@ -165,8 +176,8 @@ Como la maqueta contiene las fórmulas definitivas, se usa como **oráculo ejecu
 | Día | Entregable |
 |---|---|
 | Lun 9 | Plan v2 acordado; **solicitud formal de las 2 VM** y accesos (fecha tope de entrega: **miércoles 18-nov**) |
-| Mié 11 | Monorepo, `CLAUDE.md`, CI, migraciones base, semillas de catálogos (depuradas), arnés oráculo |
-| Jue 12 | Autenticación + roles + alcance (esqueleto), `audit_log`, pantalla de ingreso |
+| Mié 11 | Proyecto Django, `CLAUDE.md`, pruebas automáticas, modelos de catálogos, carga de semillas (depuradas), escenarios de paridad |
+| Jue 12 | Ingreso, perfiles (grupos) y alcance, administración de usuarios y catálogos, historial de cambios |
 | Vie 13 | Demo del esqueleto en entorno temporal; backlog de R1 listo |
 
 ### 5.3 Entregas

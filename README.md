@@ -21,4 +21,4 @@ Sistema web interno para que cada dirección provincial capture su **Plan Anual*
 
 ## Stack previsto
 
-React + Vite (interfaz) · Node.js + Fastify (web service REST) · PostgreSQL 16 · Nginx · Linux — todo software libre.
+Django 5.2 LTS (Python) con HTMX · Django REST Framework (web service) · PostgreSQL 16 · Nginx + Gunicorn · Linux — todo software libre, en una sola aplicación.
