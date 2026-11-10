@@ -10,6 +10,8 @@ Sistema web interno para que cada dirección provincial capture su **Plan Anual*
 |---|---|
 | [`docs/valoracion-y-plan-de-desarrollo.md`](docs/valoracion-y-plan-de-desarrollo.md) | Valoración de la maqueta, stack tecnológico, arquitectura en 2 servidores virtuales, plan de entregas (R1 1-dic-2026 … R4 30-dic-2026) y riesgos |
 | [`docs/especificacion-de-requisitos.md`](docs/especificacion-de-requisitos.md) | Perfiles y permisos, requisitos funcionales por módulo, reglas de negocio y fórmulas, datos, requisitos no funcionales, supuestos y preguntas abiertas |
+| [`docs/guia-levantamiento-requerimientos.md`](docs/guia-levantamiento-requerimientos.md) | Guía para el líder funcional: decisiones a cerrar por módulo, agenda de sesiones, insumos y entrega del requerimiento final (vie 13-nov) |
+| [`docs/guia-entorno-de-pruebas.md`](docs/guia-entorno-de-pruebas.md) | Paso a paso para el equipo técnico: instalación y verificación del entorno de pruebas (Ubuntu 24.04, PostgreSQL 16, Django, Gunicorn, Nginx) e instalación de versiones |
 
 ## Referencia
 
