@@ -1,0 +1,28 @@
+# Sistema de Captura de Informes — IPACOOP
+
+Oficina de Planificación · Instituto Panameño Autónomo Cooperativo
+
+Sistema web interno para que cada dirección provincial capture su **Plan Anual** de forma autónoma y se lleve de forma centralizada la **ejecución** (informes mensuales y técnicos), los **consolidados** y los **indicadores**.
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [`docs/valoracion-y-plan-de-desarrollo.md`](docs/valoracion-y-plan-de-desarrollo.md) | Valoración de la maqueta, stack tecnológico, arquitectura en 2 servidores virtuales, plan de entregas (R1 1-dic-2026 … R4 30-dic-2026) y riesgos |
+| [`docs/especificacion-de-requisitos.md`](docs/especificacion-de-requisitos.md) | Perfiles y permisos, requisitos funcionales por módulo, reglas de negocio y fórmulas, datos, requisitos no funcionales, supuestos y preguntas abiertas |
+| [`docs/guia-levantamiento-requerimientos.md`](docs/guia-levantamiento-requerimientos.md) | Guía para el líder funcional: decisiones a cerrar por módulo, agenda de sesiones, insumos y entrega del requerimiento final (vie 13-nov) |
+| [`docs/guia-entorno-de-pruebas.md`](docs/guia-entorno-de-pruebas.md) | Paso a paso para el equipo técnico: instalación y verificación del entorno de pruebas (Ubuntu 24.04, PostgreSQL 16, Django, Gunicorn, Nginx) e instalación de versiones |
+
+Versiones en Word (generadas a partir de los `.md`): `docs/word/Valoracion_y_Plan_de_Desarrollo.docx`, `docs/word/Especificacion_de_Requisitos.docx`, `docs/word/Guia_Levantamiento_Requerimientos.docx` y `docs/word/Guia_Entorno_de_Pruebas.docx`.
+
+## Referencia
+
+| Ruta | Contenido |
+|---|---|
+| `referencia/maqueta/Sistema_Captura_Informes_IPACOOP.html` | Maqueta funcional original (fuente de reglas y fórmulas; se usa como oráculo de pruebas) |
+| `referencia/seeds/catalogos.json` | Direcciones, departamentos, programas, tipos, estados, cargos y 1.381 cooperativas |
+| `referencia/seeds/codigos-actividad.json` | 72 actividades con sus códigos |
+
+## Stack previsto
+
+Django 5.2 LTS (Python) con HTMX · Django REST Framework (web service) · PostgreSQL 16 · Nginx + Gunicorn · Linux — todo software libre, en una sola aplicación.
